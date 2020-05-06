@@ -27,57 +27,44 @@
  * @category    Application Unit Test
  * @package     Application
  * @author      Jens Schwidder <schwidder@zib.de>
- * @copyright   Copyright (c) 2008-2019, OPUS 4 development team
+ * @copyright   Copyright (c) 2020, OPUS 4 development team
  * @license     http://www.gnu.org/licenses/gpl.html General Public License
  */
 
-class Application_ModulesTest extends ControllerTestCase
+class Application_Translate_TmxParserTest extends ControllerTestCase
 {
 
-    public function testGetInstance()
+    public function testParse()
     {
-        $modules = Application_Modules::getInstance();
+        $path = APPLICATION_PATH . '/tests/resources/tmx/testWithTags.tmx';
+        $tmx = file_get_contents($path);
 
-        $this->assertNotNull($modules);
-        $this->assertInstanceOf('Application_Modules', $modules);
+        $parser = new Application_Translate_TmxParser();
 
-        $this->assertSame($modules, Application_Modules::getInstance());
-    }
+        $translations = $parser->parse($tmx);
 
-    public function testRegisterModule()
-    {
-        Application_Modules::setInstance(null);
-
-        $module = new Application_Configuration_Module('frontdoor');
-
-        $this->assertFalse(Application_Modules::getInstance()->isRegistered('frontdoor'));
-
-        Application_Modules::registerModule($module);
-
-        $this->assertTrue(Application_Modules::getInstance()->isRegistered('frontdoor'));
-
-        Application_Modules::setInstance(null);
-    }
-
-    public function testGetModulesPath()
-    {
-        $path = Application_Modules::getInstance()->getModulesPath();
-
-        $this->assertEquals(APPLICATION_PATH . DIRECTORY_SEPARATOR . 'modules', $path);
-    }
-
-    public function testGetModules()
-    {
-        $modules = Application_Modules::getInstance()->getModules();
-
-        $this->assertCount(18, $modules);
-
-        // some expected modules
-        $expectedModules = ['admin', 'frontdoor', 'default', 'export', 'publish', 'solrsearch'];
-
-        foreach ($expectedModules as $name) {
-            $this->assertArrayHasKey($name, $modules, "Module [$name] is missing");
-            $this->assertInstanceOf('Application_Configuration_Module', $modules[$name]);
-        }
+        $this->assertCount(3, $translations);
+        $this->assertEquals([
+            'testkey_cdata' => [
+                'values' => [
+                    'en' => '<span>Translation</span>',
+                    'de' => '&Uuml;bersetzung'
+                ]
+            ],
+            'testkey' => [
+                'module' => 'admin',
+                'values' => [
+                    'en' => '<span class="highlight" name="title">Translation</span>',
+                    'de' => '&Uuml;bersetzung'
+                ]
+            ],
+            'testkey_whitespace' => [
+                'module' => 'home',
+                'values' => [
+                    'en' => "line1\nline2\n  line3",
+                    'de' => "Zeile1\nZeile2\n  Zeile3"
+                ]
+            ]
+        ], $translations);
     }
 }
